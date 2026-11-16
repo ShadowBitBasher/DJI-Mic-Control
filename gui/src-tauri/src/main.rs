@@ -93,14 +93,14 @@ fn show_main(app: &AppHandle) {
 /// one mic connected), the current NC mode, NC power, LED state, the connected
 /// device's protocol version, and whether "Start at login" is enabled.
 /// Compared each tick so the menu is only rebuilt on change.
-type MenuState = (bool, Option<String>, Option<String>, Option<String>, Option<u8>, bool, bool);
+type MenuState = (bool, Option<String>, Option<String>, Option<String>, Option<u8>, bool);
 
 /// Read the current menu-relevant state.
 fn menu_state(app: &AppHandle) -> MenuState {
     let autostart = app.autolaunch().is_enabled().unwrap_or(false);
     let mgr = app.state::<Arc<DeviceManager>>().inner().clone();
     if mgr.list().len() != 1 {
-        return (false, None, None, None, None, autostart, false);
+        return (false, None, None, None, None, autostart);
     }
     match pick_device(&mgr).and_then(|id| mgr.status(&id).ok()) {
         Some(st) => (
@@ -110,16 +110,15 @@ fn menu_state(app: &AppHandle) -> MenuState {
             st.settings.get("mic-leds").cloned(),
             st.protocol_version,
             autostart,
-            st.is_mobile_receiver(),
         ),
-        None => (true, None, None, None, None, autostart, false),
+        None => (true, None, None, None, None, autostart),
     }
 }
 
 /// Build the tray menu. The per-device toggles appear only when exactly one mic
 /// is connected, and their labels show the current mode and what tapping does.
 fn build_menu(app: &AppHandle, state: &MenuState) -> tauri::Result<Menu<Wry>> {
-    let (show, nc, nc_power, led, protocol_version, autostart, mobile) = state;
+    let (show, nc, nc_power, led, protocol_version, autostart) = state;
     let open = MenuItem::with_id(app, "open", locale::tr(app, "Open DJI Mic Control"), true, None::<&str>)?;
     let startup = CheckMenuItem::with_id(
         app,
@@ -145,7 +144,7 @@ fn build_menu(app: &AppHandle, state: &MenuState) -> tauri::Result<Menu<Wry>> {
             _ => locale::tr(app, "Toggle NC Mode (Basic / Strong)"),
         };
         let leds = MenuItem::with_id(app, "toggle-leds", led_label, true, None::<&str>)?;
-        let nc = MenuItem::with_id(app, "toggle-nc", nc_label, !*mobile, None::<&str>)?;
+        let nc = MenuItem::with_id(app, "toggle-nc", nc_label, true, None::<&str>)?;
         let sep_c = PredefinedMenuItem::separator(app)?;
 
         // Enabling/disabling NC outright (as opposed to its Basic/Strong mode)
@@ -157,12 +156,11 @@ fn build_menu(app: &AppHandle, state: &MenuState) -> tauri::Result<Menu<Wry>> {
             Some("off") => locale::tr(app, "Noise Cancelling: Off  →  On"),
             _ => locale::tr(app, "Toggle Noise Cancelling"),
         };
-        let nc_power_item = (*protocol_version == Some(2) && !*mobile)
+        let nc_power_item = (*protocol_version == Some(2))
             .then(|| MenuItem::with_id(app, "toggle-nc-power", nc_power_label, true, None::<&str>))
             .transpose()?;
 
-        let mut items: Vec<&dyn IsMenuItem<Wry>> = vec![&open, &sep_a, &leds];
-        if !*mobile { items.push(&nc); }
+        let mut items: Vec<&dyn IsMenuItem<Wry>> = vec![&open, &sep_a, &leds, &nc];
         if let Some(item) = &nc_power_item {
             items.push(item);
         }

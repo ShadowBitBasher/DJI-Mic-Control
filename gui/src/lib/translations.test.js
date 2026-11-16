@@ -25,5 +25,5 @@ test("all current model labels, groups, and warnings have translations", () => {
   const model = readFileSync(new URL("../../../crates/protocol/src/models/mic_mini.rs", import.meta.url), "utf8");
   const strings = [...model.matchAll(/(?:label:\s*|const G_\w+: &str =\s*|note: Some\()"([^"]+)"/g)].map((m) => m[1]);
   assert.ok(strings.length > 20);
-  for (const label of strings.filter((label) => !/^-?\d+ dB$/.test(label))) assert.ok(Object.hasOwn(zhCN, label), label);
+  for (const label of strings) assert.ok(Object.hasOwn(zhCN, label), label);
 });

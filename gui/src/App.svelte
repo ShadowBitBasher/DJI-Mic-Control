@@ -117,23 +117,11 @@
 
   async function change(settingId, value) {
     if (!selected) return;
-    const target = selected;
-    const confirmGain = ["receiver-gain", "monitoring-gain"].includes(settingId);
-    if (!confirmGain) optimistic = { ...optimistic, [settingId]: value }; // reflect toggles instantly
+    optimistic = { ...optimistic, [settingId]: value }; // reflect the flip instantly
     pending = { ...pending, [settingId]: true };
     error = null;
     try {
-      await setSetting(target, settingId, value);
-      if (confirmGain) {
-        let confirmed = false;
-        const deadline = Date.now() + 3000;
-        while (Date.now() < deadline) {
-          const current = await snapshot(target);
-          if (current.status?.settings?.[settingId] === value) { confirmed = true; break; }
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-        if (!confirmed) throw new Error($t("The receiver did not confirm the gain change. The displayed value is the reported value."));
-      }
+      await setSetting(selected, settingId, value);
       await refresh();
     } catch (e) {
       error = String(e);

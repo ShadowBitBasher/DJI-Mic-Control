@@ -28,10 +28,10 @@
             onclick={() => onselect?.(d.id)}
           >
             <span class="picto-wrap">
-              <DevicePicto pictogram={d.mobile_receiver ? "mobile-rx" : `${d.pictogram_key}-rx`} size={40} />
+              <DevicePicto pictogram={`${d.pictogram_key}-rx`} size={40} />
             </span>
             <span class="labels">
-              <span class="name">{$t(d.model_name)}</span>
+              <span class="name">{d.model_name}</span>
               <span class="serial">{d.rx_serial ?? d.id}</span>
               {#if d.tx?.some((t) => t)}
                 <span class="tx-batteries">

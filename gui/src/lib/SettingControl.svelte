@@ -44,14 +44,6 @@
   <div class="control" class:dim={locked}>
     {#if value === null}
       <span class="unknown">—</span>
-    {:else if setting.kind === "range"}
-      <div class="range-control">
-        <input type="range" aria-label={$t(setting.label)} {disabled}
-          min={Number(setting.options[0].value)} max={Number(setting.options.at(-1).value)}
-          step={Number(setting.options[1].value) - Number(setting.options[0].value)}
-          value={Number(value)} onchange={(event) => choose(event.currentTarget.value)} />
-        <output>{Number(value) > 0 ? "+" : ""}{value} dB</output>
-      </div>
     {:else if isToggle}
       <button
         class="switch"
@@ -76,10 +68,6 @@
 </div>
 
 <style>
-  .range-control { display: flex; align-items: center; gap: 8px; }
-  .range-control input { width: 100px; min-width: 0; accent-color: var(--accent); }
-  .range-control output { min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
-
   .row {
     display: flex;
     align-items: center;

@@ -1,11 +1,5 @@
 // English source strings are the fallback for missing or future translations.
 export const zhCN = {
-  "The receiver did not confirm the gain change. The displayed value is the reported value.": "接收器未确认增益更改，界面显示的是设备实际回报的值。",
-  "DJI Mic Series Mobile Receiver": "DJI Mic 手机接收器",
-  "Receiver Gain": "接收增益",
-  "Monitoring Gain": "监听增益",
-  "Power": "供电",
-  "Use the O/L/H switch on the mobile receiver to change noise cancellation.": "请使用接收器上的 O/L/H 拨档切换降噪：关闭 / 基础 / 强效。",
   "Toggle devices": "显示或隐藏设备",
   "Minimize": "最小化",
   "Restore": "还原",

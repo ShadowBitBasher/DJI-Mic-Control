@@ -48,7 +48,6 @@ pub struct DeviceSummary {
     pub model_id: String,
     pub model_name: String,
     pub pictogram_key: String,
-    pub mobile_receiver: bool,
     pub connected: bool,
     pub rx_serial: Option<String>,
     /// Battery/charging state for each TX slot, `None` where no transmitter
@@ -167,8 +166,7 @@ impl DeviceManager {
                 DeviceSummary {
                     id: id.clone(),
                     model_id: h.model.id().to_string(),
-                    model_name: if st.is_mobile_receiver() { "DJI Mic Series Mobile Receiver" } else { h.model.name() }.to_string(),
-                    mobile_receiver: st.is_mobile_receiver(),
+                    model_name: h.model.name().to_string(),
                     pictogram_key: h.model.pictogram_key().to_string(),
                     connected: live,
                     rx_serial: st.rx.as_ref().and_then(|r| r.serial.clone()),
@@ -235,10 +233,6 @@ impl DeviceManager {
         let cmd_tx = {
             let handles = self.handles.lock().unwrap();
             let h = handles.get(id).ok_or_else(|| DeviceError::NotFound(id.to_string()))?;
-
-            if let Some(reason) = h.actor.status.lock().unwrap().setting_write_error(setting) {
-                return Err(DeviceError::UnsupportedSetting(reason.to_string()));
-            }
 
             // Validate up-front for clear errors without a round-trip.
             let desc = h
