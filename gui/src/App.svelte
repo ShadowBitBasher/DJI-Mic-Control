@@ -1,8 +1,11 @@
 <script>
+  import { t } from "./lib/i18n.js";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import Sidebar from "./lib/Sidebar.svelte";
   import DevicePanel from "./lib/DevicePanel.svelte";
   import UdevModal from "./lib/UdevModal.svelte";
+  import { invoke } from "@tauri-apps/api/core";
+  import { locale, selectLocale } from "./lib/i18n.js";
   import { snapshot, setSetting, setTxSetting, udevHelp } from "./lib/api.js";
 
   // Custom window chrome. macOS keeps its native traffic lights (via the
@@ -170,6 +173,11 @@
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   });
+
+  $effect(() => {
+    document.documentElement.lang = $locale;
+    invoke("set_locale", { locale: $locale }).catch((e) => { error = String(e); });
+  });
 </script>
 
 <div class="app" class:mac={isMac}>
@@ -185,20 +193,25 @@
   {/if}
 
   <div class="topbar" class:mac={isMac} data-tauri-drag-region>
-    <button class="icon-btn" onclick={() => (sidebarOpen = !sidebarOpen)} aria-label="Toggle devices">
+    <button class="icon-btn" onclick={() => (sidebarOpen = !sidebarOpen)} aria-label={$t("Toggle devices")}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
         <path d="M3.5 6h17M3.5 12h17M3.5 18h17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
       </svg>
     </button>
     <span class="brand" data-tauri-drag-region>DJI Mic Control</span>
     <div class="drag-fill" data-tauri-drag-region></div>
+    <select class="language-select" aria-label={$t("Language")} value={$locale}
+      onchange={(event) => selectLocale(event.currentTarget.value)}>
+      <option value="en">English</option>
+      <option value="zh-CN">简体中文</option>
+    </select>
 
     {#if !isMac}
       <div class="win-controls">
-        <button class="win-btn" onclick={minimizeWin} aria-label="Minimize">
+        <button class="win-btn" onclick={minimizeWin} aria-label={$t("Minimize")}>
           <svg width="11" height="11" viewBox="0 0 12 12"><path d="M2 6h8" stroke="currentColor" stroke-width="1.2" /></svg>
         </button>
-        <button class="win-btn" onclick={toggleMaxWin} aria-label={maximized ? "Restore" : "Maximize"}>
+        <button class="win-btn" onclick={toggleMaxWin} aria-label={maximized ? $t("Restore") : $t("Maximize")}>
           {#if maximized}
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.1">
               <rect x="3.2" y="1.6" width="6.2" height="6.2" rx="1" /><rect x="1.6" y="3.6" width="6.2" height="6.8" rx="1" fill="var(--bg-panel)" />
@@ -207,7 +220,7 @@
             <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.1"><rect x="2" y="2" width="8" height="8" rx="1" /></svg>
           {/if}
         </button>
-        <button class="win-btn close" onclick={closeWin} aria-label="Close">
+        <button class="win-btn close" onclick={closeWin} aria-label={$t("Close")}>
           <svg width="11" height="11" viewBox="0 0 12 12"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
         </button>
       </div>
@@ -216,7 +229,7 @@
 
   {#if linuxAccessIssue}
     <button class="banner" onclick={openUdev}>
-      A microphone is connected but not accessible — click to fix USB permissions.
+      {$t("A microphone is connected but not accessible — click to fix USB permissions.")}
     </button>
   {/if}
 
@@ -247,15 +260,15 @@
         <div class="placeholder">
           <div class="ph-card">
             {#if linuxAccessIssue}
-              <h2>Permission needed</h2>
-              <p>A supported microphone is connected but can't be accessed.</p>
-              <button class="cta" onclick={openUdev}>Show setup instructions</button>
+              <h2>{$t("Permission needed")}</h2>
+              <p>{$t("A supported microphone is connected but can't be accessed.")}</p>
+              <button class="cta" onclick={openUdev}>{$t("Show setup instructions")}</button>
             {:else if devices.length > 0}
-              <h2>No device selected</h2>
-              <p>Choose a device from the sidebar.</p>
+              <h2>{$t("No device selected")}</h2>
+              <p>{$t("Choose a device from the sidebar.")}</p>
             {:else}
-              <h2>No microphone connected</h2>
-              <p>Connect a supported DJI microphone over USB to get started.</p>
+              <h2>{$t("No microphone connected")}</h2>
+              <p>{$t("Connect a supported DJI microphone over USB to get started.")}</p>
             {/if}
           </div>
         </div>
@@ -269,6 +282,18 @@
 {/if}
 
 <style>
+  .language-select {
+    position: relative;
+    max-width: 120px;
+    margin-right: 8px;
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-panel);
+    color: var(--text);
+    font-size: 12px;
+  }
+
   .app {
     height: 100%;
     display: flex;

@@ -1,4 +1,5 @@
 <script>
+  import { t } from "./i18n.js";
   import DevicePicto from "./DevicePicto.svelte";
   import SettingControl from "./SettingControl.svelte";
   import NoiseCancelControl from "./NoiseCancelControl.svelte";
@@ -22,7 +23,7 @@
   const levelPct = (v) => (v == null ? 0 : Math.max(0, Math.min(100, Math.round((v / 80) * 100))));
 
   // Identity/level fields the model hasn't decoded yet read as null.
-  const orUnknown = (v) => v ?? "Unknown";
+  const orUnknown = (v) => v ?? $t("Unknown");
 
   // Gain dial in dB: always show a sign except at exactly 0.
   const formatGain = (v) => (v > 0 ? `+${v}` : `${v}`);
@@ -113,15 +114,15 @@
     // decoder) since v1 firmware reports it, just via the TX's button
     // rather than a settable command.
     if (status.protocol_version === 1 && s.v1_command == null) {
-      return "Requires protocol v2, please update your firmware";
+      return $t("Requires protocol v2, please update your firmware");
     }
     // NC mode is meaningless unless NC is enabled — on v2 firmware that's a
     // toggle in its own right; on v1 firmware it's only the TX's button.
     if (s.id === "noise-cancel" && status.nc_enabled === false) {
       const toggle = labelById["noise-cancel-power"];
       return toggle
-        ? `Turn on "${toggle}" first`
-        : "Turn on Noise Cancel using the button on the transmitter";
+        ? $t('Turn on "{setting}" first', { setting: $t(toggle) })
+        : $t("Turn on Noise Cancel using the button on the transmitter");
     }
     // Mutually exclusive settings lock each other while active. Audio
     // Channels is an enum ("mono"/"stereo"), not a switch, so its "active"
@@ -129,10 +130,10 @@
     for (const other of s.exclusive_with ?? []) {
       if (other === "stereo") {
         if (values.stereo === "stereo") {
-          return `Switch "${labelById.stereo ?? "Audio Channels"}" to Mono first`;
+          return $t('Switch "{setting}" to Mono first', { setting: $t(labelById.stereo ?? "Audio Channels") });
         }
       } else if (values[other] === "on") {
-        return `Turn off ${labelById[other] ?? other} first`;
+        return $t("Turn off {setting} first", { setting: $t(labelById[other] ?? other) });
       }
     }
     return null;
@@ -147,25 +148,25 @@
       <span class="sub">{status.rx?.serial ?? device.id}</span>
     </div>
     <span class="pill" class:on={status.connected}>
-      {status.connected ? "Connected" : "No signal"}
+      {status.connected ? $t("Connected") : $t("No signal")}
     </span>
   </header>
 
   <section class="cards">
     <div class="card">
       <div class="card-head">
-        <span class="card-title">Receiver</span>
+        <span class="card-title">{$t("Receiver")}</span>
         <DevicePicto pictogram={`${device.pictogram_key}-rx`} size={40} />
       </div>
       {#if status.rx}
-        <div class="kv"><span>Serial</span><b>{orUnknown(status.rx.serial)}</b></div>
-        <div class="kv"><span>Firmware</span><b>{orUnknown(status.rx.firmware)}</b></div>
+        <div class="kv"><span>{$t("Serial")}</span><b>{orUnknown(status.rx.serial)}</b></div>
+        <div class="kv"><span>{$t("Firmware")}</span><b>{orUnknown(status.rx.firmware)}</b></div>
       {:else}
-        <div class="muted">No data</div>
+        <div class="muted">{$t("No data")}</div>
       {/if}
       {#if status.protocol_version}
         <div class="kv">
-          <span>Protocol</span>
+          <span>{$t("Protocol")}</span>
           <span class="proto-pill" class:v1={status.protocol_version === 1} class:v2={status.protocol_version === 2}>
             v{status.protocol_version}
           </span>
@@ -173,7 +174,7 @@
       {/if}
       {#if status.gain_dial != null}
         <div class="kv">
-          <span>Gain</span>
+          <span>{$t("Gain")}</span>
           <b class="gain" class:zero={status.gain_dial === 0}>{formatGain(status.gain_dial)} dB</b>
         </div>
       {/if}
@@ -194,10 +195,10 @@
           {/if}
         </div>
         {#if tx}
-          <div class="kv"><span>Serial</span><b>{orUnknown(tx.serial)}</b></div>
-          <div class="kv"><span>Firmware</span><b>{orUnknown(tx.firmware)}</b></div>
+          <div class="kv"><span>{$t("Serial")}</span><b>{orUnknown(tx.serial)}</b></div>
+          <div class="kv"><span>{$t("Firmware")}</span><b>{orUnknown(tx.firmware)}</b></div>
           <div class="level">
-            <span class="lvl-label">Level</span>
+            <span class="lvl-label">{$t("Level")}</span>
             <div class="meter">
               <div class="unfilled" style="left:{levelPct(tx.level)}%"></div>
             </div>
@@ -214,17 +215,17 @@
             </div>
           {/if}
         {:else}
-          <div class="muted">Disconnected</div>
+          <div class="muted">{$t("Disconnected")}</div>
         {/if}
       </div>
     {/each}
   </section>
 
   <section class="settings-head">
-    <span class="settings-title">Settings</span>
-    <div class="view-switch" role="group" aria-label="Settings layout">
-      <button class:active={view === "compact"} onclick={() => onview?.("compact")}>Compact</button>
-      <button class:active={view === "list"} onclick={() => onview?.("list")}>List</button>
+    <span class="settings-title">{$t("Settings")}</span>
+    <div class="view-switch" role="group" aria-label={$t("Settings layout")}>
+      <button class:active={view === "compact"} onclick={() => onview?.("compact")}>{$t("Compact")}</button>
+      <button class:active={view === "list"} onclick={() => onview?.("list")}>{$t("List")}</button>
     </div>
   </section>
 
@@ -259,7 +260,7 @@
         <div class="col">
           {#each col as [name, items] (name)}
             <div class="group">
-              <div class="group-title">{name}</div>
+              <div class="group-title">{$t(name)}</div>
               <div class="group-grid">
                 {#each items as s (s.id)}
                   {#if s.__ncComposite}

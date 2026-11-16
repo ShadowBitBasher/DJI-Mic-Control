@@ -1,4 +1,5 @@
 <script>
+  import { t } from "./i18n.js";
   // `value` is the raw 1-7 gauge from `TxInfo.battery` (see PROTOCOL.md) --
   // 1 is full, 7 is the terminal reading immediately before auto-shutoff.
   // 0/null (not yet known, or the practically-unreachable gauge floor)
@@ -64,7 +65,8 @@
     class="batt"
     class:flash={showExclaim}
     style="--batt-color:{color}"
-    title="Battery: {label}{charging ? ' (charging)' : ''}"
+    title={$t("Battery: {label}", { label: $t(label) }) + (charging ? $t(" (charging)") : "")}
+    aria-label={$t("Battery: {label}", { label: $t(label) }) + (charging ? $t(" (charging)") : "")}
   >
     <svg width={size} height={size * 0.55} viewBox="0 0 22 12" fill="none" aria-hidden="true">
       <rect x="1" y="1" width="17" height="10" rx="2.5" stroke="var(--batt-color)" stroke-width="1.5" />

@@ -1,4 +1,5 @@
 <script>
+  import { t } from "./i18n.js";
   import DevicePicto from "./DevicePicto.svelte";
   import BatteryIcon from "./BatteryIcon.svelte";
 
@@ -13,10 +14,10 @@
     if (!e.target.closest(".device")) onselect?.(null);
   }}
 >
-  <div class="sidebar-head">Devices</div>
+  <div class="sidebar-head">{$t("Devices")}</div>
 
   {#if devices.length === 0}
-    <div class="empty">No devices</div>
+    <div class="empty">{$t("No devices")}</div>
   {:else}
     <ul class="device-list">
       {#each devices as d (d.id)}
@@ -48,7 +49,7 @@
             <span
               class="dot"
               class:connected={d.connected}
-              title={d.connected ? "Connected" : "Connecting…"}
+              title={d.connected ? $t("Connected") : $t("Connecting\u2026")}
             ></span>
           </button>
         </li>

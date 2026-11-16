@@ -1,4 +1,5 @@
 <script>
+  import { t } from "./i18n.js";
   let { help, onclose } = $props();
   let copied = $state(false);
 
@@ -16,30 +17,31 @@
 <div class="overlay" onclick={onclose} role="presentation">
   <div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
     <header>
-      <h2>Enable USB access</h2>
-      <button class="x" onclick={onclose} aria-label="Close">×</button>
+      <h2>{$t("Enable USB access")}</h2>
+      <button class="x" onclick={onclose} aria-label={$t("Close")}>×</button>
     </header>
 
     <p class="lead">
-      A microphone is connected but this app can't access it. On Linux, USB
-      devices need a udev rule granting your user permission.
+      {$t("A microphone is connected but this app can't access it. On Linux, USB devices need a udev rule granting your user permission.")}
     </p>
 
     <ol class="steps">
-      {#each help.steps as step}<li>{step}</li>{/each}
+      <li>{$t("Save the rule below to {file} (needs sudo).", { file: help.file })}</li>
+      <li>{$t("Reload the rules: sudo udevadm control --reload-rules")}</li>
+      <li>{$t("Re-trigger: sudo udevadm trigger")}</li>
+      <li>{$t("Unplug and replug the receiver.")}</li>
     </ol>
 
     <div class="rule">
       <div class="rule-head">
         <code>{help.file}</code>
-        <button class="copy" onclick={copy}>{copied ? "Copied" : "Copy rule"}</button>
+        <button class="copy" onclick={copy}>{copied ? $t("Copied") : $t("Copy rule")}</button>
       </div>
       <pre>{help.rule}</pre>
     </div>
 
     <p class="foot">
-      The Linux <code>.deb</code> and <code>.rpm</code> packages install this rule
-      for you.
+      {$t("The Linux .deb and .rpm packages install this rule for you.")}
     </p>
   </div>
 </div>

@@ -14,6 +14,20 @@ required.
 
 The wire protocol is documented in [PROTOCOL.md](PROTOCOL.md).
 
+## Interface language
+
+Use the language selector in the title bar to switch between **English** (the default)
+and **简体中文**. The preference is saved locally and restored on launch. Device labels,
+settings, battery tooltips, and tray menus update immediately; macOS native menus also
+follow the selection. Product names, serial numbers, firmware versions, protocol values,
+and CLI output are unchanged. Low-level device/system error messages remain in English.
+
+在标题栏选择“简体中文”即可切换界面语言，应用会记住选择。电量提示显示设备报告的
+档位，不代表精确百分比；将鼠标停在电池图标上可查看状态。
+
+Translations live in `gui/src/lib/translations.js`; missing entries fall back to English.
+Run the locale checks with `node --test src/lib/translations.test.js` from `gui/`.
+
 ## macOS "DJI Mic Control.app is damaged and can't be opened"
 
 macOS's security "gatekeeper" does not like that this app is not signed with an Apple developer account. Unfortunately, this means macOS will refuse to open an app downloaded unless you release it from quarantine.

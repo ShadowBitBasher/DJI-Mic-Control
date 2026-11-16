@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
+mod locale;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -118,29 +119,29 @@ fn menu_state(app: &AppHandle) -> MenuState {
 /// is connected, and their labels show the current mode and what tapping does.
 fn build_menu(app: &AppHandle, state: &MenuState) -> tauri::Result<Menu<Wry>> {
     let (show, nc, nc_power, led, protocol_version, autostart) = state;
-    let open = MenuItem::with_id(app, "open", "Open DJI Mic Control", true, None::<&str>)?;
+    let open = MenuItem::with_id(app, "open", locale::tr(app, "Open DJI Mic Control"), true, None::<&str>)?;
     let startup = CheckMenuItem::with_id(
         app,
         "toggle-autostart",
-        "Start at login (hidden)",
+        locale::tr(app, "Start at login (hidden)"),
         true,
         *autostart,
         None::<&str>,
     )?;
-    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", locale::tr(app, "Quit"), true, None::<&str>)?;
     let sep_a = PredefinedMenuItem::separator(app)?;
     let sep_b = PredefinedMenuItem::separator(app)?;
 
     if *show {
         let led_label = match led.as_deref() {
-            Some("on") => "Mic LEDs: On  →  Off",
-            Some("off") => "Mic LEDs: Off  →  On",
-            _ => "Toggle Mic LEDs",
+            Some("on") => locale::tr(app, "Mic LEDs: On  →  Off"),
+            Some("off") => locale::tr(app, "Mic LEDs: Off  →  On"),
+            _ => locale::tr(app, "Toggle Mic LEDs"),
         };
         let nc_label = match nc.as_deref() {
-            Some("strong") => "Noise Cancel: Strong  →  Basic",
-            Some("basic") => "Noise Cancel: Basic  →  Strong",
-            _ => "Toggle NC Mode (Basic / Strong)",
+            Some("strong") => locale::tr(app, "Noise Cancel: Strong  →  Basic"),
+            Some("basic") => locale::tr(app, "Noise Cancel: Basic  →  Strong"),
+            _ => locale::tr(app, "Toggle NC Mode (Basic / Strong)"),
         };
         let leds = MenuItem::with_id(app, "toggle-leds", led_label, true, None::<&str>)?;
         let nc = MenuItem::with_id(app, "toggle-nc", nc_label, true, None::<&str>)?;
@@ -151,9 +152,9 @@ fn build_menu(app: &AppHandle, state: &MenuState) -> tauri::Result<Menu<Wry>> {
         // toggled by the TX's physical button (see `noise-cancel-power` in
         // `settings.rs`).
         let nc_power_label = match nc_power.as_deref() {
-            Some("on") => "Noise Cancelling: On  →  Off",
-            Some("off") => "Noise Cancelling: Off  →  On",
-            _ => "Toggle Noise Cancelling",
+            Some("on") => locale::tr(app, "Noise Cancelling: On  →  Off"),
+            Some("off") => locale::tr(app, "Noise Cancelling: Off  →  On"),
+            _ => locale::tr(app, "Toggle Noise Cancelling"),
         };
         let nc_power_item = (*protocol_version == Some(2))
             .then(|| MenuItem::with_id(app, "toggle-nc-power", nc_power_label, true, None::<&str>))
@@ -476,6 +477,7 @@ fn main() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--hidden"]),
         ))
+        .manage(locale::LocaleState::default())
         .manage(manager)
         .setup(move |app| {
             // Set the window icon explicitly so the titlebar and taskbar show it
@@ -625,6 +627,7 @@ fn main() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            locale::set_locale,
             commands::snapshot,
             commands::set_setting,
             commands::set_tx_setting,

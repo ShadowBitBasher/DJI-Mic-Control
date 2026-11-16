@@ -1,4 +1,5 @@
 <script>
+  import { t } from "./i18n.js";
   // Noise Cancel's three settings (power, mode, and the TX-button toggle) are
   // closely related, so they render as one combined element instead of three
   // separate rows: a main switch for "Noise Cancelling", with the Basic/Strong
@@ -50,7 +51,7 @@
 <div class="ncgroup" class:compact>
   <div class="ncmain" class:busy={!!pending[power.id]} title={powerLocked ? powerReason : null}>
     <div class="label">
-      <span class="title">{power.label}</span>
+      <span class="title">{$t(power.label)}</span>
       {#if powerLocked}
         <span class="lock" title={powerReason} aria-label={powerReason}>🔒</span>
       {/if}
@@ -64,7 +65,7 @@
           class:on={powerChecked}
           role="switch"
           aria-checked={powerChecked}
-          aria-label={power.label}
+          aria-label={$t(power.label)}
           onclick={togglePower}
         >
           <span class="knob"></span>
@@ -75,7 +76,7 @@
 
   <div class="ncsub" class:busy={!!pending[mode.id]} title={modeLocked ? modeReason : null}>
     <div class="label">
-      <span class="subtitle">Mode</span>
+      <span class="subtitle">{$t("Mode")}</span>
       {#if modeLocked}
         <span class="lock" title={modeReason} aria-label={modeReason}>🔒</span>
       {/if}
@@ -84,10 +85,10 @@
       {#if modeValue === null}
         <span class="unknown">—</span>
       {:else}
-        <div class="segmented" role="group" aria-label={mode.label}>
+        <div class="segmented" role="group" aria-label={$t(mode.label)}>
           {#each mode.options as opt (opt.value)}
             <button class="segment" class:active={modeValue === opt.value} onclick={() => chooseMode(opt.value)}>
-              {opt.label}
+              {$t(opt.label)}
             </button>
           {/each}
         </div>
@@ -97,7 +98,7 @@
 
   <div class="ncsub" class:busy={!!pending[button.id]} title={buttonLocked ? buttonReason : null}>
     <div class="label">
-      <span class="subtitle">{button.label}</span>
+      <span class="subtitle">{$t(button.label)}</span>
       {#if buttonLocked}
         <span class="lock" title={buttonReason} aria-label={buttonReason}>🔒</span>
       {/if}
@@ -111,7 +112,7 @@
           class:on={buttonChecked}
           role="switch"
           aria-checked={buttonChecked}
-          aria-label={button.label}
+          aria-label={$t(button.label)}
           onclick={toggleButton}
         >
           <span class="knob"></span>

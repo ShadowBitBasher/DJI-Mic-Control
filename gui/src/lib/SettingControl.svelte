@@ -1,4 +1,5 @@
 <script>
+  import { t } from "./i18n.js";
   // Renders one setting from its descriptor: a switch for toggles, a segmented
   // picker for enums. Options are ordered off→on, so the second option is the
   // "on" state. `pending` blocks input while a write is in flight; `compact`
@@ -32,11 +33,11 @@
 
 <div class="row" class:compact class:busy={pending} class:locked title={locked ? lockReason : null}>
   <div class="label">
-    <span class="title">{setting.label}</span>
+    <span class="title">{$t(setting.label)}</span>
     {#if locked}
       <span class="lock" title={lockReason} aria-label={lockReason}>🔒</span>
     {:else if setting.note}
-      <span class="note" title={setting.note}>{compact ? "⚠" : setting.note}</span>
+      <span class="note" title={$t(setting.note)}>{compact ? "⚠" : $t(setting.note)}</span>
     {/if}
   </div>
 
@@ -49,16 +50,16 @@
         class:on={checked}
         role="switch"
         aria-checked={checked}
-        aria-label={setting.label}
+        aria-label={$t(setting.label)}
         onclick={toggle}
       >
         <span class="knob"></span>
       </button>
     {:else}
-      <div class="segmented" role="group" aria-label={setting.label}>
+      <div class="segmented" role="group" aria-label={$t(setting.label)}>
         {#each setting.options as opt (opt.value)}
           <button class="segment" class:active={value === opt.value} onclick={() => choose(opt.value)}>
-            {opt.label}
+            {$t(opt.label)}
           </button>
         {/each}
       </div>
