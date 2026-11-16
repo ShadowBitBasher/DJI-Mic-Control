@@ -58,6 +58,8 @@
     const out = [];
     let ncInserted = false;
     for (const s of settings) {
+      if (device.mobile_receiver && ["auto-off-15m", "camera-power"].includes(s.id)) continue;
+      if (!device.mobile_receiver && ["receiver-gain", "monitoring-gain"].includes(s.id)) continue;
       if (TX_TARGETED_IDS.has(s.id)) continue;
       if (NC_IDS.has(s.id)) {
         if (!ncInserted) {
@@ -108,6 +110,9 @@
 
   // Why a setting is locked, or null if it is freely settable.
   function lockReason(s) {
+    if (device.mobile_receiver && NC_IDS.has(s.id)) {
+      return "Use the O/L/H switch on the mobile receiver to change noise cancellation.";
+    }
     // Settings v2 firmware introduced don't exist on a v1 device at all.
     // "noise-cancel-power" still shows its real value there (see the
     // decoder) since v1 firmware reports it, just via the TX's button
@@ -141,7 +146,7 @@
 
 <div class="panel">
   <header class="head">
-    <span class="picto"><DevicePicto pictogram={`${device.pictogram_key}-rx`} size={54} /></span>
+    <span class="picto"><DevicePicto pictogram={device.mobile_receiver ? "mobile-rx" : `${device.pictogram_key}-rx`} size={54} /></span>
     <div class="titles">
       <h1>{device.model_name}</h1>
       <span class="sub">{status.rx?.serial ?? device.id}</span>
@@ -154,8 +159,8 @@
   <section class="cards">
     <div class="card">
       <div class="card-head">
-        <span class="card-title">Receiver</span>
-        <DevicePicto pictogram={`${device.pictogram_key}-rx`} size={40} />
+        <span class="card-title">{"Receiver"}</span>
+        <DevicePicto pictogram={device.mobile_receiver ? "mobile-rx" : `${device.pictogram_key}-rx`} size={40} />
       </div>
       {#if status.rx}
         <div class="kv"><span>Serial</span><b>{orUnknown(status.rx.serial)}</b></div>
@@ -171,7 +176,10 @@
           </span>
         </div>
       {/if}
-      {#if status.gain_dial != null}
+      {#if device.mobile_receiver}
+        <div class="kv"><span>{"Power"}</span><b>USB</b></div>
+      {/if}
+      {#if status.gain_dial != null && !device.mobile_receiver}
         <div class="kv">
           <span>Gain</span>
           <b class="gain" class:zero={status.gain_dial === 0}>{formatGain(status.gain_dial)} dB</b>
@@ -233,6 +241,7 @@
       {#each renderSettings as s (s.id)}
         {#if s.__ncComposite}
           <NoiseCancelControl
+            readOnly={device.mobile_receiver}
             power={settingsById["noise-cancel-power"]}
             mode={settingsById["noise-cancel"]}
             button={settingsById["noise-cancel-button"]}
@@ -264,6 +273,7 @@
                 {#each items as s (s.id)}
                   {#if s.__ncComposite}
                     <NoiseCancelControl
+            readOnly={device.mobile_receiver}
                       power={settingsById["noise-cancel-power"]}
                       mode={settingsById["noise-cancel"]}
                       button={settingsById["noise-cancel-button"]}

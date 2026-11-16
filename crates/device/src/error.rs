@@ -32,6 +32,9 @@ pub enum DeviceError {
     #[error("setting {0:?} does not target a specific transmitter (use set)")]
     UnexpectedTx(String),
 
+    #[error("{0}")]
+    UnsupportedSetting(String),
+
     /// A USB transfer failed.
     #[error("usb error: {0}")]
     Usb(String),

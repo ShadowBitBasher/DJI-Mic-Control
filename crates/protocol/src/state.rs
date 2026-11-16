@@ -62,6 +62,8 @@ pub struct TxInfo {
 /// (see [`TxInfo`]).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RxInfo {
+    /// Product name reported in the v2 identity records.
+    pub product_name: Option<String>,
     pub serial: Option<String>,
     pub firmware: Option<Firmware>,
 }
@@ -104,6 +106,28 @@ impl DeviceStatus {
             protocol_version: None,
             gain_dial: None,
         }
+    }
+
+    /// The mobile RX shares the Mini USB ID and reports this internal product name.
+    pub fn is_mobile_receiver(&self) -> bool {
+        matches!(self.rx.as_ref().and_then(|rx| rx.product_name.as_deref()),
+            Some("DJI Mic Mini 2" | "DJI Mic Series Mobile Receiver"))
+    }
+
+    /// Capability checks apply to both the GUI and CLI before sending a command.
+    pub fn setting_write_error(&self, setting: &str) -> Option<&'static str> {
+        if self.is_mobile_receiver() {
+            match setting {
+                "noise-cancel" | "noise-cancel-power" | "noise-cancel-button" =>
+                    return Some("Use the O/L/H switch on the mobile receiver to change noise cancellation."),
+                "auto-off-15m" | "camera-power" =>
+                    return Some("This setting is not available on the USB-powered mobile receiver."),
+                _ => {}
+            }
+        } else if matches!(setting, "receiver-gain" | "monitoring-gain") {
+            return Some("This control requires an identified mobile receiver.");
+        }
+        None
     }
 
     /// Number of powered-on transmitters.
