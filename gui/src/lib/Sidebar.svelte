@@ -27,7 +27,7 @@
             onclick={() => onselect?.(d.id)}
           >
             <span class="picto-wrap">
-              <DevicePicto pictogram={`${d.pictogram_key}-rx`} size={40} />
+              <DevicePicto pictogram={d.mobile_receiver ? "mobile-rx" : `${d.pictogram_key}-rx`} size={40} />
             </span>
             <span class="labels">
               <span class="name">{d.model_name}</span>

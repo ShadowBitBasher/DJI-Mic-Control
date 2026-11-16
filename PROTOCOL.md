@@ -532,3 +532,38 @@ off). Each TX slot opens `02 01`/`02 02` — record tag `0x02` plus the
 physical unit (TX1/TX2) — followed by `00 00 00 1a` (reserved, then length
 26). TX slot flags (+6) = `0xb8` (LEDs on, TX auto-off on, NC-button
 permission on), low-cut byte (+9) = `0x01` (low cut off).
+
+## Mobile receiver variant
+
+The DJI Mic Series Mobile Receiver can share USB ID `2ca3:4011` with the
+camera receiver. On the tested unit it reports `DJI Mic Mini 2` in its **RX**
+product-name record (tag `0x06`, unit `0`). This is distinct from a Mini 2
+transmitter record and must not be inferred from the transmitter model.
+Preserve the RX name across status heartbeats.
+
+For this receiver, v2 status frame byte 22 is signed receiver gain and byte 27
+is signed monitoring gain. Receiver-targeted commands `0x0039` and `0x0026`
+write one signed byte: receiver gain accepts -12/-6/0/6/12 dB; monitoring gain
+accepts integer -12 through +12 dB. The UI waits for the reported value to
+confirm a change rather than treating successful USB output as acknowledgement.
+
+The physical O/L/H switch owns noise cancellation. Display the first connected
+TX slot's `+7` bit `0x01` (enabled) and `+6` bit `0x20` (strong) as read-only;
+block noise-cancel, noise-cancel-power, and noise-cancel-button writes on the
+mobile receiver. Hide camera power synchronization and RX auto-off controls.
+
+References: [DJI Mobile RX manual](https://dl.djicdn.com/downloads/DJI_Mic_Series_MobileRX/20251015/UM/MobileRX_um_en.pdf)
+(hardware switch behavior), and [usokawa/dji-mic-mo](https://github.com/usokawa/dji-mic-mo)
+(receiver-name discrimination, gain commands, ranges, and status offsets).
+Implementation here uses this project's existing packet builder and decoder.
+
+### Hardware validation
+
+Tested on macOS arm64 with a USB-connected mobile receiver (firmware
+`02.03.11.00`, protocol v2) and one DJI Mic Mini transmitter (firmware
+`01.01.00.56`). Receiver gain was changed from 0 to -6 dB and monitoring gain
+from 0 to -2 dB; both values were read back after quitting and relaunching
+the application. Both settings were then restored to 0 dB and read back again.
+The displayed noise-cancellation state was Basic. Physical O/L/H transitions,
+headphone audio quality, other gain values, and Windows/Linux runtime behavior
+were not tested on hardware.

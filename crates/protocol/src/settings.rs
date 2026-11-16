@@ -16,6 +16,8 @@ pub enum SettingKind {
     Toggle,
     /// More than two mutually exclusive options — rendered as a segmented picker.
     Enum,
+    /// Numeric options rendered as a range input with an explicit dB value.
+    Range,
 }
 
 /// Where a v2 command is addressed.

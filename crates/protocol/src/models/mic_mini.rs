@@ -70,7 +70,43 @@ const G_AUDIO: &str = "Audio";
 const G_POWER: &str = "Power & Startup";
 const G_DEVICE: &str = "Device";
 
-static SETTINGS: [Setting; 13] = [
+static RX_GAIN_OPTS: [SettingOption; 5] = [
+    SettingOption { value: "-12", label: "-12 dB", wire: 0xf4 },
+    SettingOption { value: "-6", label: "-6 dB", wire: 0xfa },
+    SettingOption { value: "0", label: "0 dB", wire: 0x0 },
+    SettingOption { value: "6", label: "6 dB", wire: 0x6 },
+    SettingOption { value: "12", label: "12 dB", wire: 0xc },
+];
+
+static MONITOR_GAIN_OPTS: [SettingOption; 25] = [
+    SettingOption { value: "-12", label: "-12 dB", wire: 0xf4 },
+    SettingOption { value: "-11", label: "-11 dB", wire: 0xf5 },
+    SettingOption { value: "-10", label: "-10 dB", wire: 0xf6 },
+    SettingOption { value: "-9", label: "-9 dB", wire: 0xf7 },
+    SettingOption { value: "-8", label: "-8 dB", wire: 0xf8 },
+    SettingOption { value: "-7", label: "-7 dB", wire: 0xf9 },
+    SettingOption { value: "-6", label: "-6 dB", wire: 0xfa },
+    SettingOption { value: "-5", label: "-5 dB", wire: 0xfb },
+    SettingOption { value: "-4", label: "-4 dB", wire: 0xfc },
+    SettingOption { value: "-3", label: "-3 dB", wire: 0xfd },
+    SettingOption { value: "-2", label: "-2 dB", wire: 0xfe },
+    SettingOption { value: "-1", label: "-1 dB", wire: 0xff },
+    SettingOption { value: "0", label: "0 dB", wire: 0x0 },
+    SettingOption { value: "1", label: "1 dB", wire: 0x1 },
+    SettingOption { value: "2", label: "2 dB", wire: 0x2 },
+    SettingOption { value: "3", label: "3 dB", wire: 0x3 },
+    SettingOption { value: "4", label: "4 dB", wire: 0x4 },
+    SettingOption { value: "5", label: "5 dB", wire: 0x5 },
+    SettingOption { value: "6", label: "6 dB", wire: 0x6 },
+    SettingOption { value: "7", label: "7 dB", wire: 0x7 },
+    SettingOption { value: "8", label: "8 dB", wire: 0x8 },
+    SettingOption { value: "9", label: "9 dB", wire: 0x9 },
+    SettingOption { value: "10", label: "10 dB", wire: 0xa },
+    SettingOption { value: "11", label: "11 dB", wire: 0xb },
+    SettingOption { value: "12", label: "12 dB", wire: 0xc },
+];
+
+static SETTINGS: [Setting; 15] = [
     Setting {
         id: "noise-cancel",
         label: "Noise Cancel",
@@ -240,6 +276,16 @@ static SETTINGS: [Setting; 13] = [
         exclusive_with: &[],
         note: None,
     },
+    Setting {
+        id: "receiver-gain", label: "Receiver Gain", group: G_AUDIO, kind: SettingKind::Range,
+        v1_command: None, v2_command: 0x39, v2_target: TARGET_RX,
+        options: &RX_GAIN_OPTS, exclusive_with: &[], note: None,
+    },
+    Setting {
+        id: "monitoring-gain", label: "Monitoring Gain", group: G_AUDIO, kind: SettingKind::Range,
+        v1_command: None, v2_command: 0x26, v2_target: TARGET_RX,
+        options: &MONITOR_GAIN_OPTS, exclusive_with: &[], note: None,
+    },
 ];
 
 const HEADER_LEN: usize = 14;
@@ -327,7 +373,7 @@ fn decode_v1(f: &[u8]) -> Option<DeviceStatus> {
 
     let rx_flags0 = f[rx_off];
     let rx_flags1 = f[rx_off + 1];
-    let rx = RxInfo {
+    let rx = RxInfo { product_name: None,
         firmware: Some(read_firmware(&f[rx_off + 2..rx_off + 6])),
         serial: Some(read_ascii_field(&f[rx_off + 7..rx_off + 21])),
     };
@@ -450,11 +496,30 @@ fn decode_v2_status(previous: &DeviceStatus, f: &[u8]) -> Option<DeviceStatus> {
         }
     }
     status.rx =
-        Some(previous.rx.clone().unwrap_or(RxInfo { serial: None, firmware: None }));
+        Some(previous.rx.clone().unwrap_or(RxInfo { product_name: None, serial: None, firmware: None }));
 
+    let mobile = status.is_mobile_receiver();
+    // On the mobile RX the switch is reflected in connected TX status bits.
+    let mobile_nc = (0..tx_count).find_map(|slot| {
+        let off = V2_HEADER_LEN + slot * V2_TX_SLOT_LEN;
+        let unit = f[off + 1];
+        if (1..=2).contains(&unit) && connected & (1 << (unit - 1)) != 0 {
+            Some((f[off + 7] & 1 != 0, f[off + 6] & 0x20 != 0))
+        } else { None }
+    });
+    if mobile { status.nc_enabled = mobile_nc.map(|v| v.0).unwrap_or(false); }
     let s = &mut status.settings;
-    s.insert("noise-cancel".into(), bit(flags1 & 0x08 != 0, "strong", "basic"));
-    s.insert("noise-cancel-power".into(), on_off(flags1 & 0x20 != 0));
+    s.insert("receiver-gain".into(), gain_dial.to_string());
+    s.insert("monitoring-gain".into(), (f[27] as i8).to_string());
+    if mobile {
+        if let Some((enabled, strong)) = mobile_nc {
+            s.insert("noise-cancel".into(), bit(strong, "strong", "basic"));
+            s.insert("noise-cancel-power".into(), on_off(enabled));
+        }
+    } else {
+        s.insert("noise-cancel".into(), bit(flags1 & 0x08 != 0, "strong", "basic"));
+        s.insert("noise-cancel-power".into(), on_off(flags1 & 0x20 != 0));
+    }
     s.insert("camera-power".into(), on_off(flags1 & 0x80 != 0));
     s.insert("auto-off-15m".into(), on_off(flags2 & 0x01 != 0));
     s.insert("stereo".into(), bit(flags2 & 0x04 != 0, "stereo", "mono"));
@@ -523,7 +588,7 @@ fn decode_v2_records(previous: &DeviceStatus, f: &[u8]) -> Option<DeviceStatus> 
                 let serial = read_ascii_field(&data[4..]);
                 match index {
                     0 => {
-                        let rx = status.rx.get_or_insert(RxInfo { serial: None, firmware: None });
+                        let rx = status.rx.get_or_insert(RxInfo { product_name: None, serial: None, firmware: None });
                         rx.serial = Some(serial);
                         rx.firmware = Some(firmware);
                     }
@@ -561,6 +626,11 @@ fn decode_v2_records(previous: &DeviceStatus, f: &[u8]) -> Option<DeviceStatus> 
                     })
                     .level = Some(data[0]);
                 }
+                matched = true;
+            }
+            0x06 if index == 0 => {
+                status.rx.get_or_insert(RxInfo { product_name: None, serial: None, firmware: None })
+                    .product_name = Some(read_ascii_field(data));
                 matched = true;
             }
             0x06 if index == 1 || index == 2 => {
@@ -1122,4 +1192,87 @@ mod tests {
             .build_command(1, Dialect::V1, "voice-tone", "rich", Some(0))
             .is_none());
     }
+    #[test]
+    fn mobile_receiver_identity_is_distinct_from_transmitter_model() {
+        let mut body = vec![0u8; 14];
+        body[0] = 0x55; body[2] = 0x04; body[9..12].copy_from_slice(&[0x5b, 3, 3]);
+        body.extend_from_slice(&[6, 0, 0, 0, 0, 14]);
+        body.extend_from_slice(b"DJI Mic Mini 2");
+        body[1] = (body.len() + 2) as u8;
+        let frame = crate::crc::append(body, crate::crc::V2_INIT, crate::crc::V2_RESIDUE);
+        let st = MicMini.decode(&fresh_status(), &frame).unwrap();
+        assert!(st.is_mobile_receiver());
+        let next = MicMini.decode(&st, &sample_2tx_v2()).unwrap();
+        assert!(next.is_mobile_receiver());
+        assert_eq!(next.rx.unwrap().product_name.as_deref(), Some("DJI Mic Mini 2"));
+
+        let camera_with_mini2_tx = MicMini.decode(&fresh_status(), &sample_identity_rx_and_tx_v2_model()).unwrap();
+        assert!(!camera_with_mini2_tx.is_mobile_receiver());
+        assert_eq!(camera_with_mini2_tx.tx[0].as_ref().unwrap().product_name.as_deref(), Some("DJI Mic Mini 2"));
+    }
+
+    #[test]
+    fn mobile_gain_commands_target_receiver_and_validate_ranges() {
+        for (id, cmd, values) in [
+            ("receiver-gain", 0x39, vec![-12, -6, 0, 6, 12]),
+            ("monitoring-gain", 0x26, (-12..=12).collect::<Vec<i32>>()),
+        ] {
+            for value in values {
+                let pkt = MicMini.build_command(1, Dialect::V2, id, &value.to_string(), None).unwrap();
+                assert_eq!(&pkt[12..14], &[0, 0]);
+                assert_eq!(&pkt[16..20], &[cmd, 0, 1, value as i8 as u8]);
+            }
+            for invalid in ["-13", "13", "1.5", "on"] {
+                assert!(MicMini.build_command(1, Dialect::V2, id, invalid, None).is_none());
+            }
+            assert!(MicMini.build_command(1, Dialect::V1, id, "0", None).is_none());
+        }
+        assert!(MicMini.build_command(1, Dialect::V2, "receiver-gain", "1", None).is_none());
+    }
+
+    #[test]
+    fn mobile_gains_decode_signed_values() {
+        let mut frame = sample_2tx_v2();
+        frame[22] = (-6i8) as u8; frame[27] = (-11i8) as u8;
+        frame.truncate(frame.len() - 2);
+        let frame = crate::crc::append(frame, crate::crc::V2_INIT, crate::crc::V2_RESIDUE);
+        let st = MicMini.decode(&fresh_status(), &frame).unwrap();
+        assert_eq!(st.settings.get("receiver-gain").map(String::as_str), Some("-6"));
+        assert_eq!(st.settings.get("monitoring-gain").map(String::as_str), Some("-11"));
+    }
+
+    #[test]
+    fn mobile_capabilities_block_ineffective_commands() {
+        let mut st = fresh_status();
+        assert!(st.setting_write_error("receiver-gain").is_some());
+        st.rx = Some(RxInfo { product_name: Some("DJI Mic Mini 2".into()), serial: None, firmware: None });
+        for id in ["noise-cancel", "noise-cancel-power", "noise-cancel-button", "camera-power", "auto-off-15m"] {
+            assert!(st.setting_write_error(id).is_some(), "{id}");
+        }
+        for id in ["receiver-gain", "monitoring-gain", "stereo", "mic-leds"] {
+            assert!(st.setting_write_error(id).is_none(), "{id}");
+        }
+        st.rx.as_mut().unwrap().product_name = Some("DJI Mic Mini".into());
+        assert!(st.setting_write_error("noise-cancel").is_none());
+        assert!(st.setting_write_error("monitoring-gain").is_some());
+    }
+
+    #[test]
+    fn mobile_noise_status_uses_connected_tx_bits() {
+        let mut previous = fresh_status();
+        previous.rx = Some(RxInfo { product_name: Some("DJI Mic Mini 2".into()), serial: None, firmware: None });
+        for (enabled, strong) in [(false, false), (true, false), (true, true)] {
+            let mut f = sample_2tx_v2();
+            f[20] = 0; // RX flags deliberately disagree with TX switch state.
+            f[V2_HEADER_LEN + 6] = if strong { 0x20 } else { 0 };
+            f[V2_HEADER_LEN + 7] = if enabled { 1 } else { 0 };
+            f.truncate(f.len() - 2);
+            let f = crate::crc::append(f, crate::crc::V2_INIT, crate::crc::V2_RESIDUE);
+            let st = MicMini.decode(&previous, &f).unwrap();
+            assert_eq!(st.nc_enabled, enabled);
+            assert_eq!(st.settings["noise-cancel-power"], if enabled { "on" } else { "off" });
+            assert_eq!(st.settings["noise-cancel"], if strong { "strong" } else { "basic" });
+        }
+    }
+
 }
